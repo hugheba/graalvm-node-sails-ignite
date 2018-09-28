@@ -1,0 +1,95 @@
+import de.gesellix.gradle.docker.tasks.*
+import io.fabric8.kubernetes.client.*
+
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'io.fabric8:kubernetes-api:3.0.8'
+  }
+}
+
+plugins {
+  id 'net.nemerosa.versioning' version '2.7.1'
+  id "de.gesellix.docker" version "2018-01-30T22-14-21"
+}
+
+ext {
+  imageName = "dhub.junta.net/graalvm-node-sails"
+}
+
+version = versioning.info.build
+
+task prepareDockerBuild() {
+  outputs.upToDateWhen { false }
+  doLast() {
+    ant.delete dir: "build/docker"
+    ant.mkdir dir: "build/docker"
+    ant.tar destfile: "build/docker/app.tgz", compression: "gzip", {
+      tarfileset dir: ".", {
+        file(".dockerignore").eachLine {
+          exclude name: it
+        }
+      }
+    }
+    ant.copy file: "Dockerfile", todir: "build/docker"
+  }
+}
+
+task dockerBuild(type: DockerBuildTask, dependsOn: prepareDockerBuild) {
+  doFirst {
+  }
+  imageName = "${project.ext.imageName}:${project.ext.imageVersion}"
+  buildContextDirectory = file("build/docker")
+  doLast {
+    "Build docker image ${imageName}"
+  }
+  outputs.upToDateWhen { false }
+}
+
+task dockerPush(type: DockerPushTask, dependsOn: dockerBuild) {
+
+  repositoryName = "${project.ext.imageName}:${project.ext.imageVersion}"
+  authConfigPlain = getDockerClient().readAuthConfig("dhub.junta.net", null)
+  outputs.upToDateWhen { false }
+  doLast {
+    "Pushed docker image ${repositoryName}"
+  }
+}
+
+task deploy(dependsOn: dockerPush) {
+  outputs.upToDateWhen { false }
+  doLast {
+
+    KubernetesClient kube = new DefaultKubernetesClient()
+
+    def latestImage = "${project.ext.imageName}:${project.ext.imageVersion}"
+    println "Deploying ${latestImage} to kube"
+
+    def deployment = kube.extensions().deployments().inNamespace("bryan").withName('graalvm-node-sails')
+
+    def containerList = deployment.get().spec.template.spec.getContainers()
+
+    containerList.findAll { it.name.contains(/graalvm-node-sails/) }*.image = latestImage
+
+    deployment.edit()
+      .editSpec()
+      .editTemplate()
+      .editMetadata()
+      .removeFromLabels("version").addToLabels("version", project.ext.imageVersion as String)
+      .endMetadata()
+      .editSpec()
+      .withContainers(containerList)
+      .endSpec()
+      .endTemplate()
+      .endSpec()
+      .done()
+
+
+  }
+}
+
+task wrapper(type:Wrapper) {
+	gradleVersion="4.10.1"
+}
