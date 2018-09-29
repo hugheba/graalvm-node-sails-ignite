@@ -40,7 +40,7 @@ task prepareDockerBuild() {
 task dockerBuild(type: DockerBuildTask, dependsOn: prepareDockerBuild) {
   doFirst {
   }
-  imageName = "${project.ext.imageName}:${project.ext.imageVersion}"
+  imageName = "${project.ext.imageName}:${project.version}"
   buildContextDirectory = file("build/docker")
   doLast {
     "Build docker image ${imageName}"
@@ -50,7 +50,7 @@ task dockerBuild(type: DockerBuildTask, dependsOn: prepareDockerBuild) {
 
 task dockerPush(type: DockerPushTask, dependsOn: dockerBuild) {
 
-  repositoryName = "${project.ext.imageName}:${project.ext.imageVersion}"
+  repositoryName = "${project.ext.imageName}:${project.version}"
   authConfigPlain = getDockerClient().readAuthConfig("dhub.junta.net", null)
   outputs.upToDateWhen { false }
   doLast {
@@ -64,7 +64,7 @@ task deploy(dependsOn: dockerPush) {
 
     KubernetesClient kube = new DefaultKubernetesClient()
 
-    def latestImage = "${project.ext.imageName}:${project.ext.imageVersion}"
+    def latestImage = "${project.ext.imageName}:${project.version}"
     println "Deploying ${latestImage} to kube"
 
     def deployment = kube.extensions().deployments().inNamespace("bryan").withName('graalvm-node-sails')
@@ -77,7 +77,7 @@ task deploy(dependsOn: dockerPush) {
       .editSpec()
       .editTemplate()
       .editMetadata()
-      .removeFromLabels("version").addToLabels("version", project.ext.imageVersion as String)
+      .removeFromLabels("version").addToLabels("version", project.version as String)
       .endMetadata()
       .editSpec()
       .withContainers(containerList)

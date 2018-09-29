@@ -1,7 +1,8 @@
 module.exports = async function index(req, res) {
   let cnt = 0;
   try {
-    let counter = sails.hooks.ignite.getCounter('indexCounter');
+    let ib = sails.hooks.ignite.get();
+    let counter = ib.getCounter('indexCounter');
     cnt = counter.incrementAndGet();
   } catch(e) {
     console.log(e.message, e);
