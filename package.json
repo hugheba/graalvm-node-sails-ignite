@@ -10,20 +10,42 @@
     "@sailshq/socket.io-redis": "^5.2.0",
     "async": "2.0.1",
     "grunt": "1.0.1",
+    "html-webpack-plugin": "^3.2.0",
+    "react": "^16.5.2",
+    "react-dom": "^16.5.2",
     "sails": "^1.0.2",
     "sails-hook-grunt": "^3.0.2",
     "sails-hook-ignite": "1.0.0-RC2",
     "sails-hook-orm": "^2.0.0-16",
-    "sails-hook-sockets": "^1.4.0"
+    "sails-hook-sockets": "^1.4.0",
+    "sails-hook-webpack3": "^1.0.4"
   },
   "devDependencies": {
-    "@sailshq/eslint": "^4.19.3"
+    "@sailshq/eslint": "^4.19.3",
+    "babel-core": "^6.26.3",
+    "babel-loader": "7",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-react": "^6.24.1",
+    "babel-preset-react-hmre": "^1.1.1",
+    "npm-run-all": "^4.1.3",
+    "opn": "^5.4.0",
+    "rimraf": "^2.6.2",
+    "webpack": "^4.20.2",
+    "webpack-cli": "^3.1.1",
+    "webpack-dev-server": "^3.1.9",
+    "webpack-hot-middleware": "^2.24.2"
   },
   "scripts": {
-    "start": "NODE_ENV=production node app.js",
+    "start": "npm-run-all --parallel open:client lift",
     "test": "npm run lint && npm run custom-tests && echo 'Done.'",
     "lint": "eslint . --max-warnings=0 --report-unused-disable-directives && echo '✔  Your .js files look good.'",
-    "custom-tests": "echo \"(No other custom tests yet.)\" && echo"
+    "custom-tests": "echo \"(No other custom tests yet.)\" && echo",
+    "open:client": "webpack-dev-server --mode development --open",
+    "lift": "node --jvm --jvm.cp='node_modules/hugheba-graaljs-ignite/lib/hugheba-graaljs-ignite-all.jar' app.js",
+    "clean": "rimraf .tmp && mkdir .tmp/public",
+    "build": "npm run build:prod",
+    "build:dev": "webpack --mode development",
+    "build:prod": "webpack --mode production"
   },
   "main": "app.js",
   "repository": {
